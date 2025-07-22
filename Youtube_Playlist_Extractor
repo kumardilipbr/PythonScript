@@ -1,0 +1,72 @@
+import yt_dlp
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,  # Set the logging level to INFO
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.FileHandler("youtube_url_fetcher.log"),  # Log to a file
+        logging.StreamHandler(),  # Also log to the console
+    ],
+)
+
+def get_playlist_urls(playlist_url):
+    """
+    Fetches all video URLs from a YouTube playlist URL using yt_dlp.
+
+    Args:
+        playlist_url (str): The URL of the YouTube playlist.
+
+    Returns:
+        list: A list of video URLs in the playlist, or None on error.
+    """
+    ydl_opts = {
+        'extract_flat': True,  # Extract only the URLs, not full metadata
+        'quiet': True,       # Suppress console output
+        'ignoreerrors': True,  # Ignore errors and continue
+    }
+
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info_dict = ydl.extract_info(playlist_url, download=False)  # download=False to only get info
+            if info_dict and 'entries' in info_dict:
+                entries = info_dict['entries']
+                video_urls = [entry['url'] for entry in entries if 'url' in entry]  # Extract 'url'
+                logging.info(f"Successfully extracted {len(video_urls)} URLs from playlist: {playlist_url}")
+                return video_urls
+            else:
+                logging.warning(f"No videos found in playlist: {playlist_url}")
+                return [] # Return an empty list, not None
+    except Exception as e:
+        logging.error(f"Error fetching URLs from {playlist_url}: {e}")
+        print(f"Error: {e}")  # Print the error to the console as well.
+        return None
+
+def main():
+    """
+    Main function to take playlist URL and print video URLs.
+    """
+    playlist_url = input("Enter the YouTube playlist URL: ")
+    if not playlist_url:
+        print("Please enter a valid YouTube playlist URL.")
+        logging.error("No playlist URL provided.")
+        return
+
+    video_urls = get_playlist_urls(playlist_url)
+
+    if video_urls is None:
+        print("Failed to retrieve video URLs.")
+        logging.error("Failed to retrieve video URLs.")
+    elif not video_urls:  # Check if the list is empty
+        print("No videos found in the playlist.")
+        logging.warning("No videos found in the playlist.")
+    else:
+        formatted_urls = '","'.join(video_urls)
+        print(f'"{formatted_urls}"')
+        logging.info(f"Printed {len(video_urls)} video URLs.")
+
+
+if __name__ == "__main__":
+    main()
+
